@@ -1,7 +1,7 @@
 // --- ESTADO DA APLICAÇÃO ---
 let isAdmin = false;
 
-// Lista de equipas inicial caso não exista dados guardados
+// Lista de equipas inicial
 let teams = [
   { id: 'direito', name: 'GD Direito', j: 0, v: 0, e: 0, d: 0, em: 0, es: 0, pm: 0, ps: 0, bo: 0, bd: 0, pts: 0 },
   { id: 'cdul', name: 'CDUL', j: 0, v: 0, e: 0, d: 0, em: 0, es: 0, pm: 0, ps: 0, bo: 0, bd: 0, pts: 0 },
@@ -18,10 +18,22 @@ let teams = [
 
 let fixturesFase1 = [];
 
+// Inicializa as 11 jornadas se vazias
+function initDefaultFixtures() {
+  if (fixturesFase1.length === 0) {
+    for (let i = 1; i <= 11; i++) {
+      fixturesFase1.push({
+        round: i,
+        bye: '',
+        matches: []
+      });
+    }
+  }
+}
+
 // --- CARREGAMENTO DE DADOS ---
 async function loadData() {
   try {
-    // Tenta carregar o dados.json publicado no servidor/GitHub
     const response = await fetch('dados.json?v=' + new Date().getTime());
     if (response.ok) {
       const serverData = await response.json();
@@ -29,7 +41,7 @@ async function loadData() {
       if (serverData.fixtures) localStorage.setItem('rugby_fixtures', JSON.stringify(serverData.fixtures));
     }
   } catch (err) {
-    console.log('Sem dados.json remoto ou erro ao carregar, a usar localStorage:', err);
+    console.log('Sem dados.json remoto, a usar memória local:', err);
   }
 
   const savedTeams = localStorage.getItem('rugby_teams');
@@ -38,6 +50,7 @@ async function loadData() {
   if (savedTeams) teams = JSON.parse(savedTeams);
   if (savedFixtures) fixturesFase1 = JSON.parse(savedFixtures);
 
+  initDefaultFixtures();
   renderAll();
 }
 
@@ -93,14 +106,12 @@ function importDataJSON(event) {
 
 // --- RECALCULAR TABELA COM BASE NOS JOGOS ---
 function recalculateStandings() {
-  // Reseta estatísticas das equipas
   teams.forEach(t => {
     t.j = 0; t.v = 0; t.e = 0; t.d = 0;
     t.em = 0; t.es = 0; t.pm = 0; t.ps = 0;
     t.bo = 0; t.bd = 0; t.pts = 0;
   });
 
-  // Percorre todos os jogos realizados e acumula pontos
   fixturesFase1.forEach(roundData => {
     if (!roundData.matches) return;
     roundData.matches.forEach(match => {
@@ -121,7 +132,6 @@ function recalculateStandings() {
         home.em += hTries; away.es += hTries;
         away.em += aTries; home.es += aTries;
 
-        // Vitória / Empate / Derrota
         if (hScore > aScore) {
           home.v++; home.pts += 4;
           away.d++;
@@ -133,11 +143,9 @@ function recalculateStandings() {
           away.e++; away.pts += 2;
         }
 
-        // Bónus Ofensivo (4 ou mais ensaios)
         if (hTries >= 4) { home.bo++; home.pts += 1; }
         if (aTries >= 4) { away.bo++; away.pts += 1; }
 
-        // Bónus Defensivo (Derrota por 7 ou menos pontos)
         if (hScore > aScore && (hScore - aScore) <= 7) { away.bd++; away.pts += 1; }
         if (aScore > hScore && (aScore - hScore) <= 7) { home.bd++; home.pts += 1; }
       }
@@ -155,7 +163,6 @@ function renderAll() {
 }
 
 function renderTableFase1() {
-  // Ordena equipas por Pontos (PTS) desc. e depois por Diferença de Pontos (DP)
   const sorted = [...teams].sort((a, b) => {
     if (b.pts !== a.pts) return b.pts - a.pts;
     const dpB = b.pm - b.ps;
@@ -185,7 +192,7 @@ function renderTableFase1() {
       <td>${t.bo}</td>
       <td>${t.bd}</td>
       <td><strong>${t.pts}</strong></td>
-      <td class="admin-only">
+      <td class="admin-only" style="display: ${isAdmin ? 'table-cell' : 'none'};">
         <button class="btn btn-sm btn-sec" onclick="openEditModal('${t.id}')"><i class="fas fa-edit"></i></button>
       </td>
     `;
@@ -198,11 +205,6 @@ function renderFixturesFase1() {
   if (!container) return;
   container.innerHTML = '';
 
-  if (fixturesFase1.length === 0) {
-    container.innerHTML = '<p class="empty-msg">Nenhum jogo agendado na 1ª Fase.</p>';
-    return;
-  }
-
   fixturesFase1.forEach(r => {
     const roundDiv = document.createElement('div');
     roundDiv.className = 'round-card card mt-1';
@@ -214,27 +216,41 @@ function renderFixturesFase1() {
         const awayTeam = teams.find(t => t.id === m.awayId) || { name: m.awayId };
         const hScore = m.homeScore !== null && m.homeScore !== undefined ? m.homeScore : '';
         const aScore = m.awayScore !== null && m.awayScore !== undefined ? m.awayScore : '';
+        const hTries = m.homeTries !== null && m.homeTries !== undefined ? m.homeTries : '';
+        const aTries = m.awayTries !== null && m.awayTries !== undefined ? m.awayTries : '';
 
         matchesHTML += `
-          <div class="match-row" style="display: flex; align-items: center; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #eee;">
-            <div style="flex: 1; text-align: right; font-weight: bold;">${homeTeam.name}</div>
-            <div style="margin: 0 15px; display: flex; align-items: center; gap: 5px;">
-              <input type="number" class="score-input" value="${hScore}" ${!isAdmin ? 'disabled' : ''} onchange="updateScore('${r.round}', '${m.id}', 'home', this.value)" style="width: 45px; text-align: center;">
+          <div class="match-row" style="display: flex; align-items: center; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #eee; flex-wrap: wrap; gap: 8px;">
+            <div style="flex: 1; text-align: right; font-weight: bold; min-width: 120px;">${homeTeam.name}</div>
+            
+            <div style="margin: 0 10px; display: flex; align-items: center; gap: 5px;">
+              <input type="number" class="score-input" value="${hScore}" ${!isAdmin ? 'disabled' : ''} placeholder="Pts" onchange="updateMatchDetails('${r.round}', '${m.id}', 'homeScore', this.value)" style="width: 50px; text-align: center;">
               <span>-</span>
-              <input type="number" class="score-input" value="${aScore}" ${!isAdmin ? 'disabled' : ''} onchange="updateScore('${r.round}', '${m.id}', 'away', this.value)" style="width: 45px; text-align: center;">
+              <input type="number" class="score-input" value="${aScore}" ${!isAdmin ? 'disabled' : ''} placeholder="Pts" onchange="updateMatchDetails('${r.round}', '${m.id}', 'awayScore', this.value)" style="width: 50px; text-align: center;">
             </div>
-            <div style="flex: 1; text-align: left; font-weight: bold;">${awayTeam.name}</div>
+
+            <div style="flex: 1; text-align: left; font-weight: bold; min-width: 120px;">${awayTeam.name}</div>
+
+            ${isAdmin ? `
+              <div style="font-size: 0.8em; display: flex; align-items: center; gap: 4px; background: #f5f5f5; padding: 4px 8px; border-radius: 4px;">
+                <span>Ensaios:</span>
+                <input type="number" value="${hTries}" placeholder="E.Casa" onchange="updateMatchDetails('${r.round}', '${m.id}', 'homeTries', this.value)" style="width: 40px; text-align: center;">
+                <span>-</span>
+                <input type="number" value="${aTries}" placeholder="E.Fora" onchange="updateMatchDetails('${r.round}', '${m.id}', 'awayTries', this.value)" style="width: 40px; text-align: center;">
+                <button class="btn btn-sm btn-sec" onclick="deleteMatch('${r.round}', '${m.id}')" title="Apagar Jogo" style="color: red; margin-left: 5px;"><i class="fas fa-trash"></i></button>
+              </div>
+            ` : ''}
           </div>
         `;
       });
     } else {
-      matchesHTML = '<p style="font-size: 0.9em; color: #777;">Sem confrontos nesta jornada.</p>';
+      matchesHTML = '<p style="font-size: 0.9em; color: #777;">Sem confrontos adicionados para esta jornada.</p>';
     }
 
     roundDiv.innerHTML = `
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; border-bottom: 2px solid #333; padding-bottom: 5px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; border-bottom: 2px solid #003366; padding-bottom: 5px;">
         <h4 style="margin: 0;">Jornada ${r.round}</h4>
-        ${r.bye ? `<span style="font-size: 0.85em; background: #eee; padding: 2px 8px; border-radius: 4px;">Folga: <strong>${r.bye}</strong></span>` : ''}
+        ${r.bye ? `<span style="font-size: 0.85em; background: #eef; padding: 2px 8px; border-radius: 4px; color: #003366;">Folga: <strong>${r.bye}</strong></span>` : ''}
       </div>
       <div>${matchesHTML}</div>
     `;
@@ -243,17 +259,126 @@ function renderFixturesFase1() {
   });
 }
 
-function updateScore(roundNum, matchId, type, val) {
+function updateMatchDetails(roundNum, matchId, field, val) {
   const round = fixturesFase1.find(r => r.round == roundNum);
   if (!round) return;
   const match = round.matches.find(m => m.id == matchId);
   if (!match) return;
 
-  const numVal = val === '' ? null : parseInt(val);
-  if (type === 'home') match.homeScore = numVal;
-  if (type === 'away') match.awayScore = numVal;
+  match[field] = val === '' ? null : parseInt(val);
 
   recalculateStandings();
+  renderAll();
+}
+
+function deleteMatch(roundNum, matchId) {
+  if (!confirm('Tem a certeza que deseja eliminar este jogo?')) return;
+  const round = fixturesFase1.find(r => r.round == roundNum);
+  if (!round) return;
+
+  round.matches = round.matches.filter(m => m.id != matchId);
+  recalculateStandings();
+  renderAll();
+}
+
+// --- MODAL DE ADICIONAR JOGO ---
+function openAddMatchModal() {
+  const modal = document.getElementById('addMatchModal');
+  const homeSelect = document.getElementById('matchHome');
+  const awaySelect = document.getElementById('matchAway');
+
+  if (!modal || !homeSelect || !awaySelect) return;
+
+  homeSelect.innerHTML = '<option value="">Selecione...</option>';
+  awaySelect.innerHTML = '<option value="">Selecione...</option>';
+
+  teams.forEach(t => {
+    homeSelect.innerHTML += `<option value="${t.id}">${t.name}</option>`;
+    awaySelect.innerHTML += `<option value="${t.id}">${t.name}</option>`;
+  });
+
+  modal.classList.add('active');
+}
+
+function closeAddMatchModal() {
+  const modal = document.getElementById('addMatchModal');
+  if (modal) modal.classList.remove('active');
+}
+
+function handleAddMatchSubmit(e) {
+  e.preventDefault();
+  const roundNum = parseInt(document.getElementById('matchRound').value);
+  const homeId = document.getElementById('matchHome').value;
+  const awayId = document.getElementById('matchAway').value;
+
+  if (homeId === awayId) {
+    alert('A equipa da casa e a equipa visitante não podem ser a mesma!');
+    return;
+  }
+
+  let round = fixturesFase1.find(r => r.round === roundNum);
+  if (!round) {
+    round = { round: roundNum, bye: '', matches: [] };
+    fixturesFase1.push(round);
+  }
+
+  const newMatch = {
+    id: 'm_' + Date.now(),
+    homeId: homeId,
+    awayId: awayId,
+    homeScore: null,
+    awayScore: null,
+    homeTries: null,
+    awayTries: null
+  };
+
+  round.matches.push(newMatch);
+  saveData();
+  closeAddMatchModal();
+  renderAll();
+}
+
+// --- MODAL DE EDITAR TABELA ---
+function openEditModal(teamId) {
+  const t = teams.find(team => team.id === teamId);
+  if (!t) return;
+
+  document.getElementById('editTeamId').value = t.id;
+  document.getElementById('editJ').value = t.j;
+  document.getElementById('editV').value = t.v;
+  document.getElementById('editE').value = t.e;
+  document.getElementById('editD').value = t.d;
+  document.getElementById('editPM').value = t.pm;
+  document.getElementById('editPS').value = t.ps;
+  document.getElementById('editBO').value = t.bo;
+  document.getElementById('editBD').value = t.bd;
+  document.getElementById('editPTS').value = t.pts;
+
+  document.getElementById('editRowModal').classList.add('active');
+}
+
+function closeEditModal() {
+  document.getElementById('editRowModal').classList.remove('active');
+}
+
+function handleEditFormSubmit(e) {
+  e.preventDefault();
+  const teamId = document.getElementById('editTeamId').value;
+  const t = teams.find(team => team.id === teamId);
+  if (!t) return;
+
+  t.j = parseInt(document.getElementById('editJ').value) || 0;
+  t.v = parseInt(document.getElementById('editV').value) || 0;
+  t.e = parseInt(document.getElementById('editE').value) || 0;
+  t.d = parseInt(document.getElementById('editD').value) || 0;
+  t.pm = parseInt(document.getElementById('editPM').value) || 0;
+  t.ps = parseInt(document.getElementById('editPS').value) || 0;
+  t.bo = parseInt(document.getElementById('editBO').value) || 0;
+  t.bd = parseInt(document.getElementById('editBD').value) || 0;
+  t.pts = parseInt(document.getElementById('editPTS').value) || 0;
+
+  saveData();
+  closeEditModal();
   renderAll();
 }
 
@@ -261,7 +386,7 @@ function updateScore(roundNum, matchId, type, val) {
 function updateAdminUI() {
   const adminElements = document.querySelectorAll('.admin-only');
   adminElements.forEach(el => {
-    el.style.display = isAdmin ? 'inline-block' : 'none';
+    el.style.display = isAdmin ? (el.tagName === 'TH' || el.tagName === 'TD' ? 'table-cell' : 'flex') : 'none';
   });
 
   const adminText = document.getElementById('adminText');
@@ -273,7 +398,7 @@ function updateAdminUI() {
 function toggleAdmin() {
   if (!isAdmin) {
     const pass = prompt('Introduza a palavra-passe de Administrador:');
-    if (pass === 'admin123') { // Podes alterar a palavra-passe aqui
+    if (pass === 'admin123') {
       isAdmin = true;
       alert('Modo Administrador ativado!');
     } else if (pass !== null) {
@@ -288,11 +413,11 @@ function toggleAdmin() {
 
 // --- EVENT LISTENERS ---
 document.addEventListener('DOMContentLoaded', () => {
-  // Botão Admin Login
+  // Login Admin
   const adminBtn = document.getElementById('adminBtn');
   if (adminBtn) adminBtn.addEventListener('click', toggleAdmin);
 
-  // Botões Exportar e Importar
+  // Botões Exportar e Importar (debaixo do Admin)
   const btnExport = document.getElementById('btnExportData');
   if (btnExport) btnExport.addEventListener('click', exportDataJSON);
 
@@ -302,6 +427,23 @@ document.addEventListener('DOMContentLoaded', () => {
     btnImport.addEventListener('click', () => fileInput.click());
     fileInput.addEventListener('change', importDataJSON);
   }
+
+  // Modal Adicionar Jogo
+  const btnAddMatch = document.getElementById('btnAddMatchFase1');
+  if (btnAddMatch) btnAddMatch.addEventListener('click', openAddMatchModal);
+
+  const btnCancelAddMatch = document.getElementById('btnCancelAddMatch');
+  if (btnCancelAddMatch) btnCancelAddMatch.addEventListener('click', closeAddMatchModal);
+
+  const addMatchForm = document.getElementById('addMatchForm');
+  if (addMatchForm) addMatchForm.addEventListener('submit', handleAddMatchSubmit);
+
+  // Modal Editar Tabela
+  const btnCancelEdit = document.getElementById('btnCancelEdit');
+  if (btnCancelEdit) btnCancelEdit.addEventListener('click', closeEditModal);
+
+  const editRowForm = document.getElementById('editRowForm');
+  if (editRowForm) editRowForm.addEventListener('submit', handleEditFormSubmit);
 
   // Menu Sidebar
   const menuToggle = document.getElementById('menuToggle');
@@ -330,7 +472,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // Navegação entre Fases
+  // Navegação
   const navLinks = document.querySelectorAll('.nav-link');
   navLinks.forEach(link => {
     link.addEventListener('click', (e) => {
@@ -352,6 +494,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
-  // Carrega os dados ao iniciar a aplicação
+  // Carrega dados iniciais
   loadData();
 });

@@ -16,20 +16,23 @@
         <i class="fas fa-bars"></i>
       </button>
       <h1>Sub-18 Rugby <span>CN</span></h1>
-      <div class="header-actions" style="display: flex; gap: 10px; align-items: center;">
-        <!-- Botões Admin para Exportar / Importar Dados -->
-        <button class="btn btn-sm btn-sec admin-only" id="btnExportData" title="Descarregar ficheiro JSON com os dados atuais">
-          <i class="fas fa-download"></i> Exportar Dados
-        </button>
-        <button class="btn btn-sm btn-sec admin-only" id="btnImportData" title="Carregar ficheiro JSON">
-          <i class="fas fa-upload"></i> Importar JSON
-        </button>
-        <input type="file" id="importFileInput" accept=".json" style="display: none;">
-        
+      
+      <!-- PAINEL ADMIN COM BOTÕES DEBAIXO -->
+      <div class="admin-panel-container" style="display: flex; flex-direction: column; align-items: flex-end; gap: 5px;">
         <button class="admin-btn" id="adminBtn">
           <i class="fas fa-lock" id="adminIcon"></i>
           <span id="adminText">Entrar Admin</span>
         </button>
+        <!-- Botões debaixo do Admin (visíveis quando logado) -->
+        <div class="admin-sub-actions admin-only" style="display: none; gap: 5px;">
+          <button class="btn btn-sm btn-sec" id="btnExportData" title="Descarregar ficheiro JSON com os dados atuais">
+            <i class="fas fa-download"></i> Exportar Dados
+          </button>
+          <button class="btn btn-sm btn-sec" id="btnImportData" title="Carregar ficheiro JSON">
+            <i class="fas fa-upload"></i> Importar JSON
+          </button>
+          <input type="file" id="importFileInput" accept=".json" style="display: none;">
+        </div>
       </div>
     </div>
   </header>
@@ -83,7 +86,7 @@
                 <th>BO</th>
                 <th>BD</th>
                 <th>PTS</th>
-                <th class="admin-only">Ações</th>
+                <th class="admin-only" style="display:none;">Ações</th>
               </tr>
             </thead>
             <tbody id="tbodyFase1">
@@ -97,7 +100,7 @@
       <div class="card">
         <div class="card-header">
           <h3><i class="fas fa-calendar-alt"></i> Calendário e Resultados</h3>
-          <button class="btn btn-sm btn-primary admin-only" id="btnAddMatchFase1"><i class="fas fa-plus"></i> Adicionar Jogo</button>
+          <button class="btn btn-sm btn-primary admin-only" id="btnAddMatchFase1" style="display:none;"><i class="fas fa-plus"></i> Adicionar Jogo</button>
         </div>
         <div id="fixturesFase1" class="fixtures-container">
           <!-- Preenchido por JS -->
