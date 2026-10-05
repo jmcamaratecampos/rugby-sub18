@@ -16,13 +16,14 @@ const INITIAL_TEAMS = [
 // ESTADO DO SISTEMA
 let isAdmin = false;
 let standingsFase1 = [];
-let fixturesFase1 = [];
+let fixturesFase1 = []; // Estrutura: [{ round: 1, bye: '', matches: [] }, ...]
 
 // INICIALIZAÇÃO
 document.addEventListener('DOMContentLoaded', () => {
   loadData();
   setupNavigation();
   setupAdmin();
+  setupAddMatchModal();
   renderAll();
 });
 
@@ -86,8 +87,6 @@ function setupAdmin() {
       renderAll();
     }
   });
-
-  document.getElementById('btnSortearFase1').addEventListener('click', generateFixturesFase1);
 }
 
 // CARREGAR / GUARDAR DADOS (`localStorage`)
@@ -104,6 +103,12 @@ function loadData() {
   const savedFixtures = localStorage.getItem('rugby_fixtures_f1');
   if (savedFixtures) {
     fixturesFase1 = JSON.parse(savedFixtures);
+  } else {
+    // Inicializar 11 Jornadas vazias
+    fixturesFase1 = [];
+    for (let r = 1; r <= 11; r++) {
+      fixturesFase1.push({ round: r, bye: '', matches: [] });
+    }
   }
 }
 
@@ -122,10 +127,10 @@ function renderTableFase1() {
   const tbody = document.getElementById('tbodyFase1');
   tbody.innerHTML = '';
 
-  // Ordenar Tabela
+  // Ordenar Tabela (Pontos -> Diferença de Pontos Marcados/Sofridos)
   standingsFase1.sort((a, b) => {
     if (b.PTS !== a.PTS) return b.PTS - a.PTS;
-    return (b.PM - b.PS) - (a.PM - a.PS); // Diferença de Pontos
+    return (b.PM - b.PS) - (a.PM - a.PS);
   });
 
   standingsFase1.forEach((team, index) => {
@@ -157,89 +162,65 @@ function renderTableFase1() {
   });
 }
 
-// GERADOR DE JOGOS (11 JORNADAS COM FOLGA)
-function generateFixturesFase1() {
-  if (!confirm('Isto irá reiniciar o calendário da 1ª Fase. Continuar?')) return;
-
-  const teams = [...INITIAL_TEAMS];
-  const totalRounds = 11;
-  fixturesFase1 = [];
-
-  // Algoritmo Berger (Round Robin para 11 equipas)
-  let list = [...teams, { id: 'bye', name: 'Folga' }];
-  for (let round = 0; round < totalRounds; round++) {
-    const roundFixtures = { round: round + 1, bye: '', matches: [] };
-    for (let i = 0; i < list.length / 2; i++) {
-      const home = list[i];
-      const away = list[list.length - 1 - i];
-
-      if (home.id === 'bye') {
-        roundFixtures.bye = away.name;
-      } else if (away.id === 'bye') {
-        roundFixtures.bye = home.name;
-      } else {
-        roundFixtures.matches.push({
-          id: `r${round+1}_m${i}`,
-          homeId: home.id,
-          awayId: away.id,
-          homeScore: null,
-          awayScore: null,
-          homeTries: null,
-          awayTries: null,
-          date: ''
-        });
-      }
-    }
-    fixturesFase1.push(roundFixtures);
-    list.splice(1, 0, list.pop()); // Rotação das equipas
-  }
-
-  recalculateStandings();
-  saveData();
-  renderAll();
-}
-
 function renderFixturesFase1() {
   const container = document.getElementById('fixturesFase1');
   container.innerHTML = '';
 
-  if (fixturesFase1.length === 0) {
-    container.innerHTML = '<p class="empty-msg">Nenhum jogo gerado. Inicie sessão como Admin e clique em "Sortear / Gerar Jogos".</p>';
+  let totalMatches = 0;
+  fixturesFase1.forEach(r => totalMatches += r.matches.length);
+
+  if (totalMatches === 0 && !isAdmin) {
+    container.innerHTML = '<p class="empty-msg">Nenhum jogo inserido no calendário.</p>';
     return;
   }
 
   fixturesFase1.forEach(r => {
+    // Calcular quem folga nesta jornada
+    const playingTeams = new Set();
+    r.matches.forEach(m => {
+      playingTeams.add(m.homeId);
+      playingTeams.add(m.awayId);
+    });
+
+    const byeTeamObj = INITIAL_TEAMS.find(t => !playingTeams.has(t.id));
+    r.bye = (r.matches.length > 0 && byeTeamObj) ? byeTeamObj.name : 'Por definir';
+
     const roundDiv = document.createElement('div');
     roundDiv.className = 'round-card';
     
     let matchesHtml = '';
-    r.matches.forEach(m => {
-      const homeTeam = INITIAL_TEAMS.find(t => t.id === m.homeId);
-      const awayTeam = INITIAL_TEAMS.find(t => t.id === m.awayId);
+    if (r.matches.length === 0) {
+      matchesHtml = '<p style="color:#94a3b8; font-size:0.85rem; padding: 5px;">Sem jogos definidos para esta jornada.</p>';
+    } else {
+      r.matches.forEach(m => {
+        const homeTeam = INITIAL_TEAMS.find(t => t.id === m.homeId);
+        const awayTeam = INITIAL_TEAMS.find(t => t.id === m.awayId);
 
-      matchesHtml += `
-        <div class="match-row">
-          <div class="match-teams">
-            <span class="team-badge ${homeTeam.colorClass}"></span> <strong>${homeTeam.name}</strong>
-            vs
-            <span class="team-badge ${awayTeam.colorClass}"></span> <strong>${awayTeam.name}</strong>
+        matchesHtml += `
+          <div class="match-row">
+            <div class="match-teams">
+              <span class="team-badge ${homeTeam.colorClass}"></span> <strong>${homeTeam.name}</strong>
+              vs
+              <span class="team-badge ${awayTeam.colorClass}"></span> <strong>${awayTeam.name}</strong>
+            </div>
+            <div>
+              <input type="datetime-local" class="match-date-input" value="${m.date || ''}" ${!isAdmin ? 'disabled' : ''} onchange="updateMatchDate('${r.round}', '${m.id}', this.value)">
+            </div>
+            <div class="match-scores">
+              <input type="number" placeholder="Pts" class="match-score-input" value="${m.homeScore ?? ''}" ${!isAdmin ? 'disabled' : ''} onchange="updateMatchResult('${r.round}', '${m.id}', 'homeScore', this.value)">
+              (${m.homeTries ?? 0}E)
+              -
+              <input type="number" placeholder="Pts" class="match-score-input" value="${m.awayScore ?? ''}" ${!isAdmin ? 'disabled' : ''} onchange="updateMatchResult('${r.round}', '${m.id}', 'awayScore', this.value)">
+              (${m.awayTries ?? 0}E)
+            </div>
+            <div class="admin-only" style="display: flex; gap: 5px;">
+              <button class="btn btn-sm btn-primary" onclick="promptTries('${r.round}', '${m.id}')">Ensaios</button>
+              <button class="btn btn-sm" style="background:#ef4444; color:white;" onclick="deleteMatch('${r.round}', '${m.id}')"><i class="fas fa-trash"></i></button>
+            </div>
           </div>
-          <div>
-            <input type="date" class="match-date-input" value="${m.date}" ${!isAdmin ? 'disabled' : ''} onchange="updateMatchDate('${r.round}', '${m.id}', this.value)">
-          </div>
-          <div class="match-scores">
-            <input type="number" placeholder="Pts" class="match-score-input" value="${m.homeScore ?? ''}" ${!isAdmin ? 'disabled' : ''} onchange="updateMatchResult('${r.round}', '${m.id}', 'homeScore', this.value)">
-            (${m.homeTries ?? 0}E)
-            -
-            <input type="number" placeholder="Pts" class="match-score-input" value="${m.awayScore ?? ''}" ${!isAdmin ? 'disabled' : ''} onchange="updateMatchResult('${r.round}', '${m.id}', 'awayScore', this.value)">
-            (${m.awayTries ?? 0}E)
-          </div>
-          <div class="admin-only">
-            <button class="btn btn-sm btn-primary" onclick="promptTries('${r.round}', '${m.id}')">Ensaios</button>
-          </div>
-        </div>
-      `;
-    });
+        `;
+      });
+    }
 
     roundDiv.innerHTML = `
       <div class="round-title">
@@ -250,6 +231,83 @@ function renderFixturesFase1() {
     `;
     container.appendChild(roundDiv);
   });
+}
+
+// GESTÃO DE MODAL PARA ADICIONAR JOGOS
+function setupAddMatchModal() {
+  const modal = document.getElementById('addMatchModal');
+  const btnOpen = document.getElementById('btnAddMatchFase1');
+  const btnCancel = document.getElementById('btnCancelAddMatch');
+  const form = document.getElementById('addMatchForm');
+  const selectHome = document.getElementById('matchHome');
+  const selectAway = document.getElementById('matchAway');
+
+  // Preencher Selects de Equipas
+  const populateSelects = () => {
+    selectHome.innerHTML = '';
+    selectAway.innerHTML = '';
+    INITIAL_TEAMS.forEach(team => {
+      selectHome.innerHTML += `<option value="${team.id}">${team.name}</option>`;
+      selectAway.innerHTML += `<option value="${team.id}">${team.name}</option>`;
+    });
+    selectAway.selectedIndex = 1; // Seleção por omissão diferente
+  };
+
+  btnOpen.addEventListener('click', () => {
+    populateSelects();
+    modal.classList.add('open');
+  });
+
+  btnCancel.addEventListener('click', () => {
+    modal.classList.remove('open');
+  });
+
+  form.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const roundNum = parseInt(document.getElementById('matchRound').value);
+    const homeId = selectHome.value;
+    const awayId = selectAway.value;
+    const matchDate = document.getElementById('matchDate').value;
+
+    if (homeId === awayId) {
+      alert('A equipa da casa e a visitante têm de ser diferentes!');
+      return;
+    }
+
+    let roundObj = fixturesFase1.find(r => r.round === roundNum);
+    if (!roundObj) {
+      roundObj = { round: roundNum, bye: '', matches: [] };
+      fixturesFase1.push(roundObj);
+    }
+
+    // Criar o jogo
+    roundObj.matches.push({
+      id: 'm_' + Date.now(),
+      homeId,
+      awayId,
+      homeScore: null,
+      awayScore: null,
+      homeTries: null,
+      awayTries: null,
+      date: matchDate
+    });
+
+    saveData();
+    renderAll();
+    modal.classList.remove('open');
+    form.reset();
+  });
+}
+
+// APAGAR JOGO
+function deleteMatch(round, matchId) {
+  if (!confirm('Tem a certeza que deseja eliminar este jogo?')) return;
+  const roundObj = fixturesFase1.find(r => r.round == round);
+  roundObj.matches = roundObj.matches.filter(m => m.id !== matchId);
+
+  recalculateStandings();
+  saveData();
+  renderAll();
 }
 
 // REGISTO E CÁLCULO DE RESULTADOS
@@ -301,6 +359,8 @@ function recalculateStandings() {
         const home = standingsFase1.find(t => t.id === m.homeId);
         const away = standingsFase1.find(t => t.id === m.awayId);
 
+        if (!home || !away) return;
+
         const hScore = m.homeScore;
         const aScore = m.awayScore;
         const hTries = m.homeTries || 0;
@@ -337,7 +397,7 @@ function recalculateStandings() {
   });
 }
 
-// EDIÇÃO MANUTENÇÃO DIRETA NA TABELA (MODAL)
+// EDIÇÃO DE PONTOS DIRETAMENTE NA TABELA (MODAL)
 function openEditModal(teamId) {
   const team = standingsFase1.find(t => t.id === teamId);
   document.getElementById('editTeamId').value = team.id;
