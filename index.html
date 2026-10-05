@@ -3,246 +3,101 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Campeonato Nacional Sub-18 Rugby</title>
-  <link rel="stylesheet" href="style.css">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <title>Gestão de Jogos e Resultados</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 800px;
+      margin: 20px auto;
+      padding: 0 15px;
+      background-color: #f4f6f9;
+    }
+    h1, h2 { text-align: center; color: #333; }
+    .card {
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+      margin-bottom: 20px;
+    }
+    .form-group {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 15px;
+    }
+    input {
+      padding: 10px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      flex: 1;
+      min-width: 120px;
+    }
+    button {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+    .btn-add { background-color: #28a745; color: white; }
+    .btn-publish { background-color: #007bff; color: white; width: 100%; font-size: 16px; margin-top: 10px; }
+    .btn-delete { background-color: #dc3545; color: white; padding: 5px 10px; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 15px;
+    }
+    th, td {
+      border: 1px solid #ddd;
+      padding: 10px;
+      text-align: center;
+    }
+    th { background-color: #343a40; color: white; }
+    .score-input { width: 50px; text-align: center; }
+  </style>
 </head>
 <body>
 
-  <!-- CABEÇALHO -->
-  <header>
-    <div class="header-container">
-      <button class="menu-toggle" id="menuToggle" aria-label="Abrir Menu">
-        <i class="fas fa-bars"></i>
-      </button>
-      <h1>Sub-18 Rugby <span>CN</span></h1>
-      
-      <!-- PAINEL ADMIN COM BOTÕES DEBAIXO -->
-      <div class="admin-panel-container" style="display: flex; flex-direction: column; align-items: flex-end; gap: 5px;">
-        <button class="admin-btn" id="adminBtn">
-          <i class="fas fa-lock" id="adminIcon"></i>
-          <span id="adminText">Entrar Admin</span>
-        </button>
-        <!-- Botões debaixo do Admin (visíveis quando logado) -->
-        <div class="admin-sub-actions admin-only" style="display: none; gap: 5px;">
-          <button class="btn btn-sm btn-sec" id="btnExportData" title="Descarregar ficheiro JSON com os dados atuais">
-            <i class="fas fa-download"></i> Exportar Dados
-          </button>
-          <button class="btn btn-sm btn-sec" id="btnImportData" title="Carregar ficheiro JSON">
-            <i class="fas fa-upload"></i> Importar JSON
-          </button>
-          <input type="file" id="importFileInput" accept=".json" style="display: none;">
-        </div>
-      </div>
-    </div>
-  </header>
+  <h1>Painel de Jogos e Resultados</h1>
 
-  <!-- MENU LATERAL (3 BARRINHAS) -->
-  <nav class="sidebar" id="sidebar">
-    <div class="sidebar-header">
-      <h3>Navegação Fases</h3>
-      <button class="close-sidebar" id="closeSidebar">&times;</button>
-    </div>
-    <ul>
-      <li><a href="#fase1" class="nav-link active" data-phase="fase1"><i class="fas fa-list-ol"></i> 1ª Fase (Todos contra Todos)</a></li>
-      <li><a href="#fase2" class="nav-link" data-phase="fase2"><i class="fas fa-th-large"></i> 2ª Fase (Grupos A e B)</a></li>
-      <li><a href="#fase3" class="nav-link" data-phase="fase3"><i class="fas fa-trophy"></i> 3ª Fase (Play-offs & Final)</a></li>
-    </ul>
-  </nav>
-
-  <div class="overlay" id="overlay"></div>
-
-  <!-- CONTEÚDO PRINCIPAL -->
-  <main class="container">
-
-    <!-- SEÇÃO FASE 1 -->
-    <section id="fase1" class="phase-section active">
-      <div class="section-header">
-        <h2>1ª Fase — Todos contra Todos (11 Equipas)</h2>
-        <p>11 jornadas. Cada equipa folga 1 fim-de-semana.</p>
-      </div>
-
-      <!-- TABELA DE CLASSIFICAÇÃO -->
-      <div class="card">
-        <div class="card-header">
-          <h3><i class="fas fa-table"></i> Tabela de Classificação</h3>
-          <span class="badge info">Os 8 primeiros avançam para a 2ª Fase</span>
-        </div>
-        <div class="table-responsive">
-          <table class="standings-table" id="tableFase1">
-            <thead>
-              <tr>
-                <th>#</th>
-                <th>Equipa</th>
-                <th>J</th>
-                <th>V</th>
-                <th>E</th>
-                <th>D</th>
-                <th>EM</th>
-                <th>ES</th>
-                <th>PM</th>
-                <th>PS</th>
-                <th>DP</th>
-                <th>BO</th>
-                <th>BD</th>
-                <th>PTS</th>
-                <th class="admin-only" style="display:none;">Ações</th>
-              </tr>
-            </thead>
-            <tbody id="tbodyFase1">
-              <!-- Preenchido por JS -->
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      <!-- CALENDÁRIO / JOGOS -->
-      <div class="card">
-        <div class="card-header">
-          <h3><i class="fas fa-calendar-alt"></i> Calendário e Resultados</h3>
-          <button class="btn btn-sm btn-primary admin-only" id="btnAddMatchFase1" style="display:none;"><i class="fas fa-plus"></i> Adicionar Jogo</button>
-        </div>
-        <div id="fixturesFase1" class="fixtures-container">
-          <!-- Preenchido por JS -->
-        </div>
-      </div>
-    </section>
-
-    <!-- SEÇÃO FASE 2 -->
-    <section id="fase2" class="phase-section">
-      <div class="section-header">
-        <h2>2ª Fase — Grupos A e B</h2>
-        <p>Dividido nos 8 melhores da 1ª Fase (2 grupos de 4 equipas a 2 voltas).</p>
-      </div>
-
-      <div class="grid-2">
-        <!-- GRUPO A -->
-        <div class="card">
-          <div class="card-header">
-            <h3>Grupo A</h3>
-          </div>
-          <div class="table-responsive">
-            <table class="standings-table">
-              <thead>
-                <tr><th>#</th><th>Equipa</th><th>J</th><th>V</th><th>DP</th><th>PTS</th></tr>
-              </thead>
-              <tbody id="tbodyFase2A"></tbody>
-            </table>
-          </div>
-        </div>
-
-        <!-- GRUPO B -->
-        <div class="card">
-          <div class="card-header">
-            <h3>Grupo B</h3>
-          </div>
-          <div class="table-responsive">
-            <table class="standings-table">
-              <thead>
-                <tr><th>#</th><th>Equipa</th><th>J</th><th>V</th><th>DP</th><th>PTS</th></tr>
-              </thead>
-              <tbody id="tbodyFase2B"></tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-
-      <div class="card mt-2">
-        <div class="card-header">
-          <h3><i class="fas fa-calendar-alt"></i> Jogos da 2ª Fase</h3>
-        </div>
-        <div id="fixturesFase2" class="fixtures-container">
-          <p class="empty-msg">A 2ª fase será ativada após a conclusão da 1ª Fase.</p>
-        </div>
-      </div>
-    </section>
-
-    <!-- SEÇÃO FASE 3 -->
-    <section id="fase3" class="phase-section">
-      <div class="section-header">
-        <h2>3ª Fase — Play-Offs & Final</h2>
-        <p>Os 2 primeiros de cada grupo jogam as Meias-finais e Final do Campeonato.</p>
-      </div>
-
-      <div class="bracket-container">
-        <!-- Meias Finais -->
-        <div class="bracket-round">
-          <h3>Meias-Finais</h3>
-          <div class="match-card" id="sf1">
-            <div class="match-team"><span>1º Grupo A</span> <input type="number" class="score-input" disabled value="0"></div>
-            <div class="match-team"><span>2º Grupo B</span> <input type="number" class="score-input" disabled value="0"></div>
-          </div>
-          <div class="match-card mt-2" id="sf2">
-            <div class="match-team"><span>1º Grupo B</span> <input type="number" class="score-input" disabled value="0"></div>
-            <div class="match-team"><span>2º Grupo A</span> <input type="number" class="score-input" disabled value="0"></div>
-          </div>
-        </div>
-
-        <!-- Final -->
-        <div class="bracket-round">
-          <h3><i class="fas fa-trophy text-gold"></i> Grande Final</h3>
-          <div class="match-card final-card" id="finalMatch">
-            <div class="match-team"><span>Vencedor MF1</span> <input type="number" class="score-input" disabled value="0"></div>
-            <div class="match-team"><span>Vencedor MF2</span> <input type="number" class="score-input" disabled value="0"></div>
-          </div>
-        </div>
-      </div>
-    </section>
-
-  </main>
-
-  <!-- MODAL PARA EDITAR PONTOS DIRETAMENTE -->
-  <div class="modal" id="editRowModal">
-    <div class="modal-content">
-      <h3>Editar Dados da Equipa</h3>
-      <form id="editRowForm">
-        <input type="hidden" id="editTeamId">
-        <div class="form-group"><label>Jogos (J):</label><input type="number" id="editJ" min="0"></div>
-        <div class="form-group"><label>Vitórias (V):</label><input type="number" id="editV" min="0"></div>
-        <div class="form-group"><label>Empates (E):</label><input type="number" id="editE" min="0"></div>
-        <div class="form-group"><label>Derrotas (D):</label><input type="number" id="editD" min="0"></div>
-        <div class="form-group"><label>Pontos Marcados (PM):</label><input type="number" id="editPM" min="0"></div>
-        <div class="form-group"><label>Pontos Sofridos (PS):</label><input type="number" id="editPS" min="0"></div>
-        <div class="form-group"><label>Bónus Ofensivo (BO):</label><input type="number" id="editBO" min="0"></div>
-        <div class="form-group"><label>Bónus Defensivo (BD):</label><input type="number" id="editBD" min="0"></div>
-        <div class="form-group"><label>Pontos Totais (PTS):</label><input type="number" id="editPTS" min="0"></div>
-        <div class="modal-actions">
-          <button type="button" class="btn btn-sec" id="btnCancelEdit">Cancelar</button>
-          <button type="submit" class="btn btn-primary">Guardar Alterações</button>
-        </div>
-      </form>
+  <!-- Formulário para Adicionar Novo Jogo -->
+  <div class="card">
+    <h2>Criar Novo Jogo</h2>
+    <div class="form-group">
+      <input type="text" id="equipa1" placeholder="Equipa Casa">
+      <input type="text" id="equipa2" placeholder="Equipa Fora">
+      <input type="date" id="dataJogo">
+      <button class="btn-add" onclick="adicionarJogo()">Adicionar Jogo</button>
     </div>
   </div>
 
-  <!-- MODAL PARA ADICIONAR NOVO JOGO -->
-  <div class="modal" id="addMatchModal">
-    <div class="modal-content">
-      <h3>Adicionar Novo Jogo (1ª Fase)</h3>
-      <form id="addMatchForm">
-        <div class="form-group">
-          <label for="matchRound">Jornada (1-11):</label>
-          <input type="number" id="matchRound" min="1" max="11" value="1" required style="width: 100%;">
-        </div>
-        <div class="form-group">
-          <label for="matchHome">Equipa Casa:</label>
-          <select id="matchHome" required style="width: 100%; padding: 6px;"></select>
-        </div>
-        <div class="form-group">
-          <label for="matchAway">Equipa Visitante:</label>
-          <select id="matchAway" required style="width: 100%; padding: 6px;"></select>
-        </div>
-        <div class="form-group">
-          <label for="matchDate">Data/Hora:</label>
-          <input type="datetime-local" id="matchDate" style="width: 100%;">
-        </div>
-        <div class="modal-actions">
-          <button type="button" class="btn btn-sec" id="btnCancelAddMatch">Cancelar</button>
-          <button type="submit" class="btn btn-primary">Adicionar Jogo</button>
-        </div>
-      </form>
-    </div>
+  <!-- Tabela de Jogos -->
+  <div class="card">
+    <h2>Tabela de Jogos</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Data</th>
+          <th>Equipa Casa</th>
+          <th>Resultado</th>
+          <th>Equipa Fora</th>
+          <th>Ações</th>
+        </tr>
+      </thead>
+      <tbody id="tabelaJogos">
+        <!-- Jogos serão inseridos aqui via JavaScript -->
+      </tbody>
+    </table>
+
+    <button class="btn-publish" onclick="publicarAlteracoes()">🚀 Publicar Alterações na Net</button>
   </div>
 
+  <!-- Firebase SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+
+  <!-- O teu script principal -->
   <script src="script.js"></script>
 </body>
 </html>
