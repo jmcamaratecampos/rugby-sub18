@@ -1,161 +1,192 @@
-// LISTA DAS 11 EQUIPAS E CORES
-const INITIAL_TEAMS = [
-  { id: 'direito', name: 'GD Direito', colorClass: 'bg-direito' },
-  { id: 'cdul', name: 'CDUL', colorClass: 'bg-cdul' },
-  { id: 'agronomia', name: 'Agronomia', colorClass: 'bg-agronomia' },
-  { id: 'belenenses', name: 'Belenenses', colorClass: 'bg-belenenses' },
-  { id: 'cascais', name: 'GDS Cascais', colorClass: 'bg-cascais' },
-  { id: 'academica', name: 'Académica', colorClass: 'bg-academica' },
-  { id: 'cdup', name: 'CDUP', colorClass: 'bg-cdup' },
-  { id: 'sport', name: 'Sport Rugby', colorClass: 'bg-sport' },
-  { id: 'santarem', name: 'Santarém', colorClass: 'bg-santarem' },
-  { id: 'tecnico', name: 'Técnico', colorClass: 'bg-tecnico' },
-  { id: 'saomiguel', name: 'São Miguel', colorClass: 'bg-saomiguel' }
+// --- ESTADO DA APLICAÇÃO ---
+let isAdmin = false;
+
+// Lista de equipas inicial caso não exista dados guardados
+let teams = [
+  { id: 'direito', name: 'GD Direito', j: 0, v: 0, e: 0, d: 0, em: 0, es: 0, pm: 0, ps: 0, bo: 0, bd: 0, pts: 0 },
+  { id: 'cdul', name: 'CDUL', j: 0, v: 0, e: 0, d: 0, em: 0, es: 0, pm: 0, ps: 0, bo: 0, bd: 0, pts: 0 },
+  { id: 'agronomia', name: 'Agronomia', j: 0, v: 0, e: 0, d: 0, em: 0, es: 0, pm: 0, ps: 0, bo: 0, bd: 0, pts: 0 },
+  { id: 'belenenses', name: 'CF "Os Belenenses"', j: 0, v: 0, e: 0, d: 0, em: 0, es: 0, pm: 0, ps: 0, bo: 0, bd: 0, pts: 0 },
+  { id: 'cascais', name: 'GDS Cascais', j: 0, v: 0, e: 0, d: 0, em: 0, es: 0, pm: 0, ps: 0, bo: 0, bd: 0, pts: 0 },
+  { id: 'benfica', name: 'SL Benfica', j: 0, v: 0, e: 0, d: 0, em: 0, es: 0, pm: 0, ps: 0, bo: 0, bd: 0, pts: 0 },
+  { id: 'cdup', name: 'CDUP', j: 0, v: 0, e: 0, d: 0, em: 0, es: 0, pm: 0, ps: 0, bo: 0, bd: 0, pts: 0 },
+  { id: 'academica', name: 'AAC Coimbra', j: 0, v: 0, e: 0, d: 0, em: 0, es: 0, pm: 0, ps: 0, bo: 0, bd: 0, pts: 0 },
+  { id: 'technico', name: 'CR Técnico', j: 0, v: 0, e: 0, d: 0, em: 0, es: 0, pm: 0, ps: 0, bo: 0, bd: 0, pts: 0 },
+  { id: 'lousa', name: 'RC Lousã', j: 0, v: 0, e: 0, d: 0, em: 0, es: 0, pm: 0, ps: 0, bo: 0, bd: 0, pts: 0 },
+  { id: 'saomiguel', name: 'CR São Miguel', j: 0, v: 0, e: 0, d: 0, em: 0, es: 0, pm: 0, ps: 0, bo: 0, bd: 0, pts: 0 }
 ];
 
-// ESTADO DO SISTEMA
-let isAdmin = false;
-let standingsFase1 = [];
-let fixturesFase1 = []; // Estrutura: [{ round: 1, bye: '', matches: [] }, ...]
+let fixturesFase1 = [];
 
-// INICIALIZAÇÃO
-document.addEventListener('DOMContentLoaded', () => {
-  loadData();
-  setupNavigation();
-  setupAdmin();
-  setupAddMatchModal();
+// --- CARREGAMENTO DE DADOS ---
+async function loadData() {
+  try {
+    // Tenta carregar o dados.json publicado no servidor/GitHub
+    const response = await fetch('dados.json?v=' + new Date().getTime());
+    if (response.ok) {
+      const serverData = await response.json();
+      if (serverData.teams) localStorage.setItem('rugby_teams', JSON.stringify(serverData.teams));
+      if (serverData.fixtures) localStorage.setItem('rugby_fixtures', JSON.stringify(serverData.fixtures));
+    }
+  } catch (err) {
+    console.log('Sem dados.json remoto ou erro ao carregar, a usar localStorage:', err);
+  }
+
+  const savedTeams = localStorage.getItem('rugby_teams');
+  const savedFixtures = localStorage.getItem('rugby_fixtures');
+
+  if (savedTeams) teams = JSON.parse(savedTeams);
+  if (savedFixtures) fixturesFase1 = JSON.parse(savedFixtures);
+
   renderAll();
-});
-
-// NAVEGAÇÃO & MENU LATERAL
-function setupNavigation() {
-  const menuToggle = document.getElementById('menuToggle');
-  const closeSidebar = document.getElementById('closeSidebar');
-  const sidebar = document.getElementById('sidebar');
-  const overlay = document.getElementById('overlay');
-  const navLinks = document.querySelectorAll('.nav-link');
-
-  const toggleMenu = () => {
-    sidebar.classList.toggle('open');
-    overlay.classList.toggle('open');
-  };
-
-  menuToggle.addEventListener('click', toggleMenu);
-  closeSidebar.addEventListener('click', toggleMenu);
-  overlay.addEventListener('click', toggleMenu);
-
-  navLinks.forEach(link => {
-    link.addEventListener('click', (e) => {
-      e.preventDefault();
-      const targetPhase = link.dataset.phase;
-
-      document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
-      document.querySelectorAll('.phase-section').forEach(s => s.classList.remove('active'));
-
-      link.classList.add('active');
-      document.getElementById(targetPhase).classList.add('active');
-      toggleMenu();
-    });
-  });
-}
-
-// MODO ADMIN
-function setupAdmin() {
-  const adminBtn = document.getElementById('adminBtn');
-  const adminIcon = document.getElementById('adminIcon');
-  const adminText = document.getElementById('adminText');
-
-  adminBtn.addEventListener('click', () => {
-    if (!isAdmin) {
-      const pass = prompt('Introduza a palavra-passe do Admin:');
-      if (pass === 'rugby123') { // Palavra-passe predefinida
-        isAdmin = true;
-        document.body.classList.add('admin-mode');
-        adminIcon.className = 'fas fa-unlock';
-        adminText.textContent = 'Admin Ativo';
-        adminBtn.classList.add('active');
-        renderAll();
-      } else if (pass !== null) {
-        alert('Palavra-passe errada!');
-      }
-    } else {
-      isAdmin = false;
-      document.body.classList.remove('admin-mode');
-      adminIcon.className = 'fas fa-lock';
-      adminText.textContent = 'Entrar Admin';
-      adminBtn.classList.remove('active');
-      renderAll();
-    }
-  });
-}
-
-// CARREGAR / GUARDAR DADOS (`localStorage`)
-function loadData() {
-  const savedStandings = localStorage.getItem('rugby_standings_f1');
-  if (savedStandings) {
-    standingsFase1 = JSON.parse(savedStandings);
-  } else {
-    standingsFase1 = INITIAL_TEAMS.map(team => ({
-      ...team, J: 0, V: 0, E: 0, D: 0, EM: 0, ES: 0, PM: 0, PS: 0, BO: 0, BD: 0, PTS: 0
-    }));
-  }
-
-  const savedFixtures = localStorage.getItem('rugby_fixtures_f1');
-  if (savedFixtures) {
-    fixturesFase1 = JSON.parse(savedFixtures);
-  } else {
-    // Inicializar 11 Jornadas vazias
-    fixturesFase1 = [];
-    for (let r = 1; r <= 11; r++) {
-      fixturesFase1.push({ round: r, bye: '', matches: [] });
-    }
-  }
 }
 
 function saveData() {
-  localStorage.setItem('rugby_standings_f1', JSON.stringify(standingsFase1));
-  localStorage.setItem('rugby_fixtures_f1', JSON.stringify(fixturesFase1));
+  localStorage.setItem('rugby_teams', JSON.stringify(teams));
+  localStorage.setItem('rugby_fixtures', JSON.stringify(fixturesFase1));
 }
 
-// RENDERIZAÇÃO
+// --- EXPORTAR E IMPORTAR JSON ---
+function exportDataJSON() {
+  const dataToExport = {
+    teams: teams,
+    fixtures: fixturesFase1,
+    exportedAt: new Date().toISOString()
+  };
+
+  const jsonString = JSON.stringify(dataToExport, null, 2);
+  const blob = new Blob([jsonString], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'dados.json';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+function importDataJSON(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const importedData = JSON.parse(e.target.result);
+      if (importedData.teams && importedData.fixtures) {
+        teams = importedData.teams;
+        fixturesFase1 = importedData.fixtures;
+        saveData();
+        renderAll();
+        alert('Dados importados com sucesso!');
+      } else {
+        alert('O ficheiro JSON selecionado não tem a estrutura correta.');
+      }
+    } catch (err) {
+      alert('Erro ao ler o ficheiro JSON: ' + err.message);
+    }
+  };
+  reader.readAsText(file);
+}
+
+// --- RECALCULAR TABELA COM BASE NOS JOGOS ---
+function recalculateStandings() {
+  // Reseta estatísticas das equipas
+  teams.forEach(t => {
+    t.j = 0; t.v = 0; t.e = 0; t.d = 0;
+    t.em = 0; t.es = 0; t.pm = 0; t.ps = 0;
+    t.bo = 0; t.bd = 0; t.pts = 0;
+  });
+
+  // Percorre todos os jogos realizados e acumula pontos
+  fixturesFase1.forEach(roundData => {
+    if (!roundData.matches) return;
+    roundData.matches.forEach(match => {
+      if (match.homeScore !== null && match.awayScore !== null && match.homeScore !== '' && match.awayScore !== '') {
+        const home = teams.find(t => t.id === match.homeId);
+        const away = teams.find(t => t.id === match.awayId);
+
+        if (!home || !away) return;
+
+        const hScore = parseInt(match.homeScore) || 0;
+        const aScore = parseInt(match.awayScore) || 0;
+        const hTries = parseInt(match.homeTries) || 0;
+        const aTries = parseInt(match.awayTries) || 0;
+
+        home.j++; away.j++;
+        home.pm += hScore; home.ps += aScore;
+        away.pm += aScore; away.ps += hScore;
+        home.em += hTries; away.es += hTries;
+        away.em += aTries; home.es += aTries;
+
+        // Vitória / Empate / Derrota
+        if (hScore > aScore) {
+          home.v++; home.pts += 4;
+          away.d++;
+        } else if (aScore > hScore) {
+          away.v++; away.pts += 4;
+          home.d++;
+        } else {
+          home.e++; home.pts += 2;
+          away.e++; away.pts += 2;
+        }
+
+        // Bónus Ofensivo (4 ou mais ensaios)
+        if (hTries >= 4) { home.bo++; home.pts += 1; }
+        if (aTries >= 4) { away.bo++; away.pts += 1; }
+
+        // Bónus Defensivo (Derrota por 7 ou menos pontos)
+        if (hScore > aScore && (hScore - aScore) <= 7) { away.bd++; away.pts += 1; }
+        if (aScore > hScore && (aScore - hScore) <= 7) { home.bd++; home.pts += 1; }
+      }
+    });
+  });
+
+  saveData();
+}
+
+// --- RENDERIZAÇÃO ---
 function renderAll() {
   renderTableFase1();
   renderFixturesFase1();
+  updateAdminUI();
 }
 
 function renderTableFase1() {
-  const tbody = document.getElementById('tbodyFase1');
-  tbody.innerHTML = '';
-
-  // Ordenar Tabela (Pontos -> Diferença de Pontos Marcados/Sofridos)
-  standingsFase1.sort((a, b) => {
-    if (b.PTS !== a.PTS) return b.PTS - a.PTS;
-    return (b.PM - b.PS) - (a.PM - a.PS);
+  // Ordena equipas por Pontos (PTS) desc. e depois por Diferença de Pontos (DP)
+  const sorted = [...teams].sort((a, b) => {
+    if (b.pts !== a.pts) return b.pts - a.pts;
+    const dpB = b.pm - b.ps;
+    const dpA = a.pm - a.ps;
+    return dpB - dpA;
   });
 
-  standingsFase1.forEach((team, index) => {
-    const dp = team.PM - team.PS;
+  const tbody = document.getElementById('tbodyFase1');
+  if (!tbody) return;
+  tbody.innerHTML = '';
+
+  sorted.forEach((t, index) => {
+    const dp = t.pm - t.ps;
     const tr = document.createElement('tr');
     tr.innerHTML = `
-      <td>${index + 1}</td>
-      <td class="team-cell">
-        <span class="team-badge ${team.colorClass}"></span>
-        ${team.name}
-      </td>
-      <td>${team.J}</td>
-      <td>${team.V}</td>
-      <td>${team.E}</td>
-      <td>${team.D}</td>
-      <td>${team.EM}</td>
-      <td>${team.ES}</td>
-      <td>${team.PM}</td>
-      <td>${team.PS}</td>
+      <td><strong>${index + 1}</strong></td>
+      <td><strong>${t.name}</strong></td>
+      <td>${t.j}</td>
+      <td>${t.v}</td>
+      <td>${t.e}</td>
+      <td>${t.d}</td>
+      <td>${t.em}</td>
+      <td>${t.es}</td>
+      <td>${t.pm}</td>
+      <td>${t.ps}</td>
       <td>${dp > 0 ? '+' + dp : dp}</td>
-      <td>${team.BO}</td>
-      <td>${team.BD}</td>
-      <td><strong>${team.PTS}</strong></td>
+      <td>${t.bo}</td>
+      <td>${t.bd}</td>
+      <td><strong>${t.pts}</strong></td>
       <td class="admin-only">
-        <button class="btn btn-sm btn-sec" onclick="openEditModal('${team.id}')"><i class="fas fa-edit"></i></button>
+        <button class="btn btn-sm btn-sec" onclick="openEditModal('${t.id}')"><i class="fas fa-edit"></i></button>
       </td>
     `;
     tbody.appendChild(tr);
@@ -164,276 +195,163 @@ function renderTableFase1() {
 
 function renderFixturesFase1() {
   const container = document.getElementById('fixturesFase1');
+  if (!container) return;
   container.innerHTML = '';
 
-  let totalMatches = 0;
-  fixturesFase1.forEach(r => totalMatches += r.matches.length);
-
-  if (totalMatches === 0 && !isAdmin) {
-    container.innerHTML = '<p class="empty-msg">Nenhum jogo inserido no calendário.</p>';
+  if (fixturesFase1.length === 0) {
+    container.innerHTML = '<p class="empty-msg">Nenhum jogo agendado na 1ª Fase.</p>';
     return;
   }
 
   fixturesFase1.forEach(r => {
-    // Calcular quem folga nesta jornada
-    const playingTeams = new Set();
-    r.matches.forEach(m => {
-      playingTeams.add(m.homeId);
-      playingTeams.add(m.awayId);
-    });
-
-    const byeTeamObj = INITIAL_TEAMS.find(t => !playingTeams.has(t.id));
-    r.bye = (r.matches.length > 0 && byeTeamObj) ? byeTeamObj.name : 'Por definir';
-
     const roundDiv = document.createElement('div');
-    roundDiv.className = 'round-card';
+    roundDiv.className = 'round-card card mt-1';
     
-    let matchesHtml = '';
-    if (r.matches.length === 0) {
-      matchesHtml = '<p style="color:#94a3b8; font-size:0.85rem; padding: 5px;">Sem jogos definidos para esta jornada.</p>';
-    } else {
+    let matchesHTML = '';
+    if (r.matches && r.matches.length > 0) {
       r.matches.forEach(m => {
-        const homeTeam = INITIAL_TEAMS.find(t => t.id === m.homeId);
-        const awayTeam = INITIAL_TEAMS.find(t => t.id === m.awayId);
+        const homeTeam = teams.find(t => t.id === m.homeId) || { name: m.homeId };
+        const awayTeam = teams.find(t => t.id === m.awayId) || { name: m.awayId };
+        const hScore = m.homeScore !== null && m.homeScore !== undefined ? m.homeScore : '';
+        const aScore = m.awayScore !== null && m.awayScore !== undefined ? m.awayScore : '';
 
-        matchesHtml += `
-          <div class="match-row">
-            <div class="match-teams">
-              <span class="team-badge ${homeTeam.colorClass}"></span> <strong>${homeTeam.name}</strong>
-              vs
-              <span class="team-badge ${awayTeam.colorClass}"></span> <strong>${awayTeam.name}</strong>
+        matchesHTML += `
+          <div class="match-row" style="display: flex; align-items: center; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #eee;">
+            <div style="flex: 1; text-align: right; font-weight: bold;">${homeTeam.name}</div>
+            <div style="margin: 0 15px; display: flex; align-items: center; gap: 5px;">
+              <input type="number" class="score-input" value="${hScore}" ${!isAdmin ? 'disabled' : ''} onchange="updateScore('${r.round}', '${m.id}', 'home', this.value)" style="width: 45px; text-align: center;">
+              <span>-</span>
+              <input type="number" class="score-input" value="${aScore}" ${!isAdmin ? 'disabled' : ''} onchange="updateScore('${r.round}', '${m.id}', 'away', this.value)" style="width: 45px; text-align: center;">
             </div>
-            <div>
-              <input type="datetime-local" class="match-date-input" value="${m.date || ''}" ${!isAdmin ? 'disabled' : ''} onchange="updateMatchDate('${r.round}', '${m.id}', this.value)">
-            </div>
-            <div class="match-scores">
-              <input type="number" placeholder="Pts" class="match-score-input" value="${m.homeScore ?? ''}" ${!isAdmin ? 'disabled' : ''} onchange="updateMatchResult('${r.round}', '${m.id}', 'homeScore', this.value)">
-              (${m.homeTries ?? 0}E)
-              -
-              <input type="number" placeholder="Pts" class="match-score-input" value="${m.awayScore ?? ''}" ${!isAdmin ? 'disabled' : ''} onchange="updateMatchResult('${r.round}', '${m.id}', 'awayScore', this.value)">
-              (${m.awayTries ?? 0}E)
-            </div>
-            <div class="admin-only" style="display: flex; gap: 5px;">
-              <button class="btn btn-sm btn-primary" onclick="promptTries('${r.round}', '${m.id}')">Ensaios</button>
-              <button class="btn btn-sm" style="background:#ef4444; color:white;" onclick="deleteMatch('${r.round}', '${m.id}')"><i class="fas fa-trash"></i></button>
-            </div>
+            <div style="flex: 1; text-align: left; font-weight: bold;">${awayTeam.name}</div>
           </div>
         `;
       });
+    } else {
+      matchesHTML = '<p style="font-size: 0.9em; color: #777;">Sem confrontos nesta jornada.</p>';
     }
 
     roundDiv.innerHTML = `
-      <div class="round-title">
-        <span>Jornada ${r.round}</span>
-        <span class="bye-tag">Folga: ${r.bye}</span>
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; border-bottom: 2px solid #333; padding-bottom: 5px;">
+        <h4 style="margin: 0;">Jornada ${r.round}</h4>
+        ${r.bye ? `<span style="font-size: 0.85em; background: #eee; padding: 2px 8px; border-radius: 4px;">Folga: <strong>${r.bye}</strong></span>` : ''}
       </div>
-      ${matchesHtml}
+      <div>${matchesHTML}</div>
     `;
+
     container.appendChild(roundDiv);
   });
 }
 
-// GESTÃO DE MODAL PARA ADICIONAR JOGOS
-function setupAddMatchModal() {
-  const modal = document.getElementById('addMatchModal');
-  const btnOpen = document.getElementById('btnAddMatchFase1');
-  const btnCancel = document.getElementById('btnCancelAddMatch');
-  const form = document.getElementById('addMatchForm');
-  const selectHome = document.getElementById('matchHome');
-  const selectAway = document.getElementById('matchAway');
+function updateScore(roundNum, matchId, type, val) {
+  const round = fixturesFase1.find(r => r.round == roundNum);
+  if (!round) return;
+  const match = round.matches.find(m => m.id == matchId);
+  if (!match) return;
 
-  // Preencher Selects de Equipas
-  const populateSelects = () => {
-    selectHome.innerHTML = '';
-    selectAway.innerHTML = '';
-    INITIAL_TEAMS.forEach(team => {
-      selectHome.innerHTML += `<option value="${team.id}">${team.name}</option>`;
-      selectAway.innerHTML += `<option value="${team.id}">${team.name}</option>`;
-    });
-    selectAway.selectedIndex = 1; // Seleção por omissão diferente
-  };
-
-  btnOpen.addEventListener('click', () => {
-    populateSelects();
-    modal.classList.add('open');
-  });
-
-  btnCancel.addEventListener('click', () => {
-    modal.classList.remove('open');
-  });
-
-  form.addEventListener('submit', (e) => {
-    e.preventDefault();
-    const roundNum = parseInt(document.getElementById('matchRound').value);
-    const homeId = selectHome.value;
-    const awayId = selectAway.value;
-    const matchDate = document.getElementById('matchDate').value;
-
-    if (homeId === awayId) {
-      alert('A equipa da casa e a visitante têm de ser diferentes!');
-      return;
-    }
-
-    let roundObj = fixturesFase1.find(r => r.round === roundNum);
-    if (!roundObj) {
-      roundObj = { round: roundNum, bye: '', matches: [] };
-      fixturesFase1.push(roundObj);
-    }
-
-    // Criar o jogo
-    roundObj.matches.push({
-      id: 'm_' + Date.now(),
-      homeId,
-      awayId,
-      homeScore: null,
-      awayScore: null,
-      homeTries: null,
-      awayTries: null,
-      date: matchDate
-    });
-
-    saveData();
-    renderAll();
-    modal.classList.remove('open');
-    form.reset();
-  });
-}
-
-// APAGAR JOGO
-function deleteMatch(round, matchId) {
-  if (!confirm('Tem a certeza que deseja eliminar este jogo?')) return;
-  const roundObj = fixturesFase1.find(r => r.round == round);
-  roundObj.matches = roundObj.matches.filter(m => m.id !== matchId);
+  const numVal = val === '' ? null : parseInt(val);
+  if (type === 'home') match.homeScore = numVal;
+  if (type === 'away') match.awayScore = numVal;
 
   recalculateStandings();
-  saveData();
   renderAll();
 }
 
-// REGISTO E CÁLCULO DE RESULTADOS
-function updateMatchDate(round, matchId, val) {
-  const roundObj = fixturesFase1.find(r => r.round == round);
-  const match = roundObj.matches.find(m => m.id == matchId);
-  match.date = val;
-  saveData();
+// --- PAINEL ADMIN E ATUALIZAÇÕES DA UI ---
+function updateAdminUI() {
+  const adminElements = document.querySelectorAll('.admin-only');
+  adminElements.forEach(el => {
+    el.style.display = isAdmin ? 'inline-block' : 'none';
+  });
+
+  const adminText = document.getElementById('adminText');
+  const adminIcon = document.getElementById('adminIcon');
+  if (adminText) adminText.textContent = isAdmin ? 'Sair Admin' : 'Entrar Admin';
+  if (adminIcon) adminIcon.className = isAdmin ? 'fas fa-unlock' : 'fas fa-lock';
 }
 
-function updateMatchResult(round, matchId, field, val) {
-  const roundObj = fixturesFase1.find(r => r.round == round);
-  const match = roundObj.matches.find(m => m.id == matchId);
-  match[field] = val !== '' ? parseInt(val) : null;
-
-  recalculateStandings();
-  saveData();
-  renderAll();
-}
-
-function promptTries(round, matchId) {
-  const roundObj = fixturesFase1.find(r => r.round == round);
-  const match = roundObj.matches.find(m => m.id == matchId);
-
-  const homeTries = prompt('Ensaios da equipa da Casa:', match.homeTries ?? 0);
-  const awayTries = prompt('Ensaios da equipa Visitante:', match.awayTries ?? 0);
-
-  if (homeTries !== null && awayTries !== null) {
-    match.homeTries = parseInt(homeTries) || 0;
-    match.awayTries = parseInt(awayTries) || 0;
-    recalculateStandings();
-    saveData();
-    renderAll();
+function toggleAdmin() {
+  if (!isAdmin) {
+    const pass = prompt('Introduza a palavra-passe de Administrador:');
+    if (pass === 'admin123') { // Podes alterar a palavra-passe aqui
+      isAdmin = true;
+      alert('Modo Administrador ativado!');
+    } else if (pass !== null) {
+      alert('Palavra-passe incorreta!');
+    }
+  } else {
+    isAdmin = false;
+    alert('Modo Administrador desativado.');
   }
+  renderAll();
 }
 
-// CÁLCULO AUTOMÁTICO DAS PONTUAÇÕES DE RUGBY
-function recalculateStandings() {
-  // Reiniciar Estatísticas
-  standingsFase1.forEach(t => {
-    t.J = 0; t.V = 0; t.E = 0; t.D = 0;
-    t.EM = 0; t.ES = 0; t.PM = 0; t.PS = 0;
-    t.BO = 0; t.BD = 0; t.PTS = 0;
-  });
+// --- EVENT LISTENERS ---
+document.addEventListener('DOMContentLoaded', () => {
+  // Botão Admin Login
+  const adminBtn = document.getElementById('adminBtn');
+  if (adminBtn) adminBtn.addEventListener('click', toggleAdmin);
 
-  fixturesFase1.forEach(r => {
-    r.matches.forEach(m => {
-      if (m.homeScore !== null && m.awayScore !== null) {
-        const home = standingsFase1.find(t => t.id === m.homeId);
-        const away = standingsFase1.find(t => t.id === m.awayId);
+  // Botões Exportar e Importar
+  const btnExport = document.getElementById('btnExportData');
+  if (btnExport) btnExport.addEventListener('click', exportDataJSON);
 
-        if (!home || !away) return;
+  const btnImport = document.getElementById('btnImportData');
+  const fileInput = document.getElementById('importFileInput');
+  if (btnImport && fileInput) {
+    btnImport.addEventListener('click', () => fileInput.click());
+    fileInput.addEventListener('change', importDataJSON);
+  }
 
-        const hScore = m.homeScore;
-        const aScore = m.awayScore;
-        const hTries = m.homeTries || 0;
-        const aTries = m.awayTries || 0;
+  // Menu Sidebar
+  const menuToggle = document.getElementById('menuToggle');
+  const sidebar = document.getElementById('sidebar');
+  const closeSidebar = document.getElementById('closeSidebar');
+  const overlay = document.getElementById('overlay');
 
-        // Atualizar Jogos e Pontos
-        home.J++; away.J++;
-        home.PM += hScore; home.PS += aScore;
-        away.PM += aScore; away.PS += hScore;
-        home.EM += hTries; home.ES += aTries;
-        away.EM += aTries; away.ES += hTries;
+  if (menuToggle && sidebar && overlay) {
+    menuToggle.addEventListener('click', () => {
+      sidebar.classList.add('open');
+      overlay.classList.add('active');
+    });
+  }
 
-        // Vitória, Empate, Derrota
-        if (hScore > aScore) {
-          home.V++; home.PTS += 4;
-          away.D++;
-        } else if (aScore > hScore) {
-          away.V++; away.PTS += 4;
-          home.D++;
-        } else {
-          home.E++; home.PTS += 2;
-          away.E++; away.PTS += 2;
-        }
+  if (closeSidebar && sidebar && overlay) {
+    closeSidebar.addEventListener('click', () => {
+      sidebar.classList.remove('open');
+      overlay.classList.remove('active');
+    });
+  }
 
-        // Bónus Ofensivo (4 ou mais ensaios)
-        if (hTries >= 4) { home.BO++; home.PTS += 1; }
-        if (aTries >= 4) { away.BO++; away.PTS += 1; }
+  if (overlay && sidebar) {
+    overlay.addEventListener('click', () => {
+      sidebar.classList.remove('open');
+      overlay.classList.remove('active');
+    });
+  }
 
-        // Bónus Defensivo (Derrota por 7 ou menos pontos)
-        if (hScore > aScore && (hScore - aScore) <= 7) { away.BD++; away.PTS += 1; }
-        if (aScore > hScore && (aScore - hScore) <= 7) { home.BD++; home.PTS += 1; }
+  // Navegação entre Fases
+  const navLinks = document.querySelectorAll('.nav-link');
+  navLinks.forEach(link => {
+    link.addEventListener('click', (e) => {
+      e.preventDefault();
+      navLinks.forEach(l => l.classList.remove('active'));
+      link.classList.add('active');
+
+      const targetPhase = link.getAttribute('data-phase');
+      document.querySelectorAll('.phase-section').forEach(sec => {
+        sec.classList.remove('active');
+      });
+      const activeSec = document.getElementById(targetPhase);
+      if (activeSec) activeSec.classList.add('active');
+
+      if (sidebar && overlay) {
+        sidebar.classList.remove('open');
+        overlay.classList.remove('active');
       }
     });
   });
-}
 
-// EDIÇÃO DE PONTOS DIRETAMENTE NA TABELA (MODAL)
-function openEditModal(teamId) {
-  const team = standingsFase1.find(t => t.id === teamId);
-  document.getElementById('editTeamId').value = team.id;
-  document.getElementById('editJ').value = team.J;
-  document.getElementById('editV').value = team.V;
-  document.getElementById('editE').value = team.E;
-  document.getElementById('editD').value = team.D;
-  document.getElementById('editPM').value = team.PM;
-  document.getElementById('editPS').value = team.PS;
-  document.getElementById('editBO').value = team.BO;
-  document.getElementById('editBD').value = team.BD;
-  document.getElementById('editPTS').value = team.PTS;
-
-  document.getElementById('editRowModal').classList.add('open');
-}
-
-document.getElementById('btnCancelEdit').addEventListener('click', () => {
-  document.getElementById('editRowModal').classList.remove('open');
-});
-
-document.getElementById('editRowForm').addEventListener('submit', (e) => {
-  e.preventDefault();
-  const id = document.getElementById('editTeamId').value;
-  const team = standingsFase1.find(t => t.id === id);
-
-  team.J = parseInt(document.getElementById('editJ').value) || 0;
-  team.V = parseInt(document.getElementById('editV').value) || 0;
-  team.E = parseInt(document.getElementById('editE').value) || 0;
-  team.D = parseInt(document.getElementById('editD').value) || 0;
-  team.PM = parseInt(document.getElementById('editPM').value) || 0;
-  team.PS = parseInt(document.getElementById('editPS').value) || 0;
-  team.BO = parseInt(document.getElementById('editBO').value) || 0;
-  team.BD = parseInt(document.getElementById('editBD').value) || 0;
-  team.PTS = parseInt(document.getElementById('editPTS').value) || 0;
-
-  document.getElementById('editRowModal').classList.remove('open');
-  saveData();
-  renderAll();
+  // Carrega os dados ao iniciar a aplicação
+  loadData();
 });

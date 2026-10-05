@@ -16,10 +16,21 @@
         <i class="fas fa-bars"></i>
       </button>
       <h1>Sub-18 Rugby <span>CN</span></h1>
-      <button class="admin-btn" id="adminBtn">
-        <i class="fas fa-lock" id="adminIcon"></i>
-        <span id="adminText">Entrar Admin</span>
-      </button>
+      <div class="header-actions" style="display: flex; gap: 10px; align-items: center;">
+        <!-- Botões Admin para Exportar / Importar Dados -->
+        <button class="btn btn-sm btn-sec admin-only" id="btnExportData" title="Descarregar ficheiro JSON com os dados atuais">
+          <i class="fas fa-download"></i> Exportar Dados
+        </button>
+        <button class="btn btn-sm btn-sec admin-only" id="btnImportData" title="Carregar ficheiro JSON">
+          <i class="fas fa-upload"></i> Importar JSON
+        </button>
+        <input type="file" id="importFileInput" accept=".json" style="display: none;">
+        
+        <button class="admin-btn" id="adminBtn">
+          <i class="fas fa-lock" id="adminIcon"></i>
+          <span id="adminText">Entrar Admin</span>
+        </button>
+      </div>
     </div>
   </header>
 
