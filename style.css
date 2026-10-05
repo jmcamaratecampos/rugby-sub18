@@ -1,0 +1,387 @@
+:root {
+  --primary: #1b2a4a;
+  --secondary: #0f172a;
+  --accent: #e2e8f0;
+  --bg: #f8fafc;
+  --card-bg: #ffffff;
+  --text: #334155;
+  --border: #e2e8f0;
+  --gold: #f59e0b;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+body {
+  background-color: var(--bg);
+  color: var(--text);
+  padding-bottom: 50px;
+}
+
+/* HEADER */
+header {
+  background: var(--primary);
+  color: white;
+  padding: 1rem 1.5rem;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.header-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.menu-toggle {
+  background: none;
+  border: none;
+  color: white;
+  font-size: 1.5rem;
+  cursor: pointer;
+}
+
+h1 span {
+  color: var(--gold);
+  font-size: 0.9rem;
+  background: rgba(255,255,255,0.1);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.admin-btn {
+  background: rgba(255, 255, 255, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  color: white;
+  padding: 8px 14px;
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: 0.2s;
+}
+
+.admin-btn:hover {
+  background: rgba(255, 255, 255, 0.25);
+}
+
+.admin-btn.active {
+  background: #22c55e;
+  border-color: #16a34a;
+}
+
+/* SIDEBAR */
+.sidebar {
+  position: fixed;
+  top: 0;
+  left: -280px;
+  width: 280px;
+  height: 100%;
+  background: var(--secondary);
+  color: white;
+  z-index: 200;
+  transition: 0.3s ease;
+  padding: 1.5rem;
+}
+
+.sidebar.open {
+  left: 0;
+}
+
+.sidebar-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid rgba(255,255,255,0.1);
+  padding-bottom: 1rem;
+  margin-bottom: 1rem;
+}
+
+.close-sidebar {
+  background: none;
+  border: none;
+  color: white;
+  font-size: 1.8rem;
+  cursor: pointer;
+}
+
+.sidebar ul {
+  list-style: none;
+}
+
+.sidebar li {
+  margin-bottom: 10px;
+}
+
+.sidebar a {
+  color: #94a3b8;
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px;
+  border-radius: 6px;
+  transition: 0.2s;
+}
+
+.sidebar a:hover, .sidebar a.active {
+  background: rgba(255,255,255,0.1);
+  color: white;
+}
+
+.overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  display: none;
+  z-index: 150;
+}
+
+.overlay.open {
+  display: block;
+}
+
+/* LAYOUT */
+.container {
+  max-width: 1200px;
+  margin: 20px auto;
+  padding: 0 15px;
+}
+
+.phase-section {
+  display: none;
+}
+
+.phase-section.active {
+  display: block;
+}
+
+.section-header {
+  margin-bottom: 20px;
+}
+
+.card {
+  background: var(--card-bg);
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  border: 1px solid var(--border);
+  padding: 20px;
+  margin-bottom: 25px;
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+}
+
+/* TABELAS */
+.table-responsive {
+  overflow-x: auto;
+}
+
+.standings-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: center;
+}
+
+.standings-table th, .standings-table td {
+  padding: 12px 8px;
+  border-bottom: 1px solid var(--border);
+}
+
+.standings-table th {
+  background: #f1f5f9;
+  color: #475569;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+}
+
+.standings-table td.team-cell {
+  text-align: left;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 600;
+}
+
+/* BADGES DAS EQUIPAS COM CORES */
+.team-badge {
+  display: inline-block;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 1px solid #ccc;
+  flex-shrink: 0;
+}
+
+/* Cores Personalizadas por Equipas */
+.bg-direito { background: linear-gradient(135deg, #dc2626 50%, #000000 50%); }
+.bg-cdul { background: #0c4a6e; }
+.bg-agronomia { background: linear-gradient(135deg, #16a34a 50%, #ffffff 50%); }
+.bg-belenenses { background: #38bdf8; }
+.bg-cascais { background: #15803d; }
+.bg-academica { background: #000000; }
+.bg-cdup { background: #22c55e; }
+.bg-sport { background: linear-gradient(135deg, #0284c7 50%, #ffffff 50%); }
+.bg-santarem { background: linear-gradient(135deg, #1e3a8a 50%, #dc2626 50%); }
+.bg-tecnico { background: linear-gradient(135deg, #ffffff 50%, #38bdf8 50%); }
+.bg-saomiguel { background: linear-gradient(135deg, #1e3a8a 50%, #000000 50%); }
+
+/* JOGOS E CALENDÁRIO */
+.fixtures-container {
+  display: grid;
+  gap: 20px;
+}
+
+.round-card {
+  background: #f8fafc;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 15px;
+}
+
+.round-title {
+  font-weight: 700;
+  color: var(--primary);
+  margin-bottom: 10px;
+  border-bottom: 2px solid var(--border);
+  padding-bottom: 5px;
+  display: flex;
+  justify-content: space-between;
+}
+
+.bye-tag {
+  font-size: 0.8rem;
+  background: #e2e8f0;
+  padding: 2px 8px;
+  border-radius: 12px;
+  color: #475569;
+}
+
+.match-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: white;
+  padding: 10px;
+  margin-bottom: 8px;
+  border-radius: 4px;
+  border: 1px solid #e2e8f0;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.match-teams {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 2;
+  min-width: 250px;
+}
+
+.match-scores {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.match-score-input, .match-tries-input {
+  width: 45px;
+  padding: 5px;
+  text-align: center;
+  border: 1px solid #cbd5e1;
+  border-radius: 4px;
+}
+
+.match-date-input {
+  font-size: 0.8rem;
+  padding: 4px;
+  border: 1px solid #cbd5e1;
+  border-radius: 4px;
+}
+
+/* BOTÕES & MODO ADMIN */
+.btn {
+  padding: 6px 12px;
+  border-radius: 4px;
+  border: none;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.btn-primary { background: var(--primary); color: white; }
+.btn-sec { background: #94a3b8; color: white; }
+.btn-sm { font-size: 0.8rem; padding: 4px 8px; }
+
+.admin-only {
+  display: none !important;
+}
+
+body.admin-mode .admin-only {
+  display: inline-block !important;
+}
+
+body.admin-mode tr .admin-only,
+body.admin-mode th .admin-only {
+  display: table-cell !important;
+}
+
+/* MODAL */
+.modal {
+  display: none;
+  position: fixed;
+  top: 0; left: 0; width: 100%; height: 100%;
+  background: rgba(0,0,0,0.6);
+  z-index: 300;
+  justify-content: center;
+  align-items: center;
+}
+
+.modal.open { display: flex; }
+
+.modal-content {
+  background: white;
+  padding: 20px;
+  border-radius: 8px;
+  width: 90%;
+  max-width: 400px;
+}
+
+.form-group {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 10px;
+  align-items: center;
+}
+
+.form-group input {
+  width: 80px;
+  padding: 4px;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 15px;
+}
+
+/* UTILS */
+.grid-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
+.mt-2 { margin-top: 20px; }
+.text-gold { color: var(--gold); }
